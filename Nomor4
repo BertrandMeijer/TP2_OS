@@ -1,0 +1,69 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
+
+#define BUFFER_SIZE 1024
+
+void copyFile(const char *src_path, const char *dest_path) {
+    int src_fd, dest_fd, bytes_read, bytes_written;
+    char buffer[BUFFER_SIZE];
+
+    // Membuka file sumber
+    src_fd = open(src_path, O_RDONLY);
+    if (src_fd == -1) {
+        perror("Error opening source file");
+        exit(EXIT_FAILURE);
+    }
+
+    // Membuka file tujuan
+    dest_fd = open(dest_path, O_WRONLY | O_CREAT | O_EXCL, 0644);
+    if (dest_fd == -1) {
+        if (errno == EEXIST) {
+            fprintf(stderr, "Destination file '%s' already exists. Copy failed.\n", dest_path);
+        } else {
+            perror("Error opening destination file");
+        }
+        close(src_fd);
+        exit(EXIT_FAILURE);
+    }
+
+    // Melakukan operasi copy
+    while ((bytes_read = read(src_fd, buffer, BUFFER_SIZE)) > 0) {
+        bytes_written = write(dest_fd, buffer, bytes_read);
+        if (bytes_written == -1) {
+            perror("Error writing to destination file");
+            close(src_fd);
+            close(dest_fd);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    if (bytes_read == -1) {
+        perror("Error reading source file");
+        close(src_fd);
+        close(dest_fd);
+        exit(EXIT_FAILURE);
+    }
+
+    // Menutup file-file yang dibuka
+    close(src_fd);
+    close(dest_fd);
+
+    printf("File '%s' has been successfully copied to '%s'.\n", src_path, dest_path);
+}
+
+int main() {
+    char src_path[256], dest_path[256];
+
+    printf("Enter the source file path: ");
+    scanf("%255s", src_path);
+
+    printf("Enter the destination file path: ");
+    scanf("%255s", dest_path);
+
+    copyFile(src_path, dest_path);
+
+    return 0;
+}
